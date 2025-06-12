@@ -10,6 +10,7 @@
 - [x] Implement basic bot command handling
 - [x] Handle bot being added to groups (new_chat_members event)
 - [x] Implement error handling and logging
+- [x] Filter httpx logging spam from telegram library
 
 ## Shopping List Management
 - [x] Design data model for shopping lists and items
@@ -20,20 +21,23 @@
 - [x] Implement item clearing/removal when purchased
 
 ## Multi-List Support
-- [ ] Design system for multiple lists per group
-- [ ] Implement list naming and switching
-- [ ] Add list viewing and browsing
+- [x] Design system for multiple lists per group
+- [x] Implement list naming and switching
+- [x] Add list viewing and browsing
 
 ## User Interface (Bot Commands)
-- [ ] Design command structure for list operations
-- [ ] Implement help and usage commands
-- [ ] Add interactive elements (keyboards/buttons)
-- [ ] Format list display for readability
+- [x] Design command structure for list operations
+- [x] Implement help and usage commands
+- [x] Format list display for readability
+- [x] Add interactive elements (keyboards/buttons)
+- [x] Add inline keyboard for item actions (mark done/remove)
 
 ## Data Persistence
-- [ ] Choose and implement storage solution
-- [ ] Design schema for lists, items, and groups
-- [ ] Implement data persistence layer
+- [ ] Choose and implement storage solution (SQLite)
+- [ ] Design SQLite schema for lists, items, and groups
+- [ ] Implement SQLite data persistence layer
+- [ ] Add data migration and backup functionality
+- [ ] Handle bot restart data recovery
 
 ## Testing and Deployment
 - [ ] Set up testing framework
