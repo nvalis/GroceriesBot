@@ -6,10 +6,10 @@
 - [x] Configure development environment
 
 ## Core Bot Infrastructure
-- [ ] Set up Telegram Bot API integration
-- [ ] Implement basic bot command handling
-- [ ] Add bot invitation and group setup functionality
-- [ ] Implement error handling and logging
+- [x] Set up Telegram Bot API integration
+- [x] Implement basic bot command handling
+- [x] Handle bot being added to groups (new_chat_members event)
+- [x] Implement error handling and logging
 
 ## Shopping List Management
 - [ ] Design data model for shopping lists and items
