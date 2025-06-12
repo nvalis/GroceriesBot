@@ -32,14 +32,22 @@
 - [x] Add interactive elements (keyboards/buttons)
 - [x] Add inline keyboard for item actions (mark done/remove)
 
+## Code Structure and Quality
+- [x] Refactor code into modular structure
+- [x] Separate concerns into logical files
+- [x] Create handlers package for command organization
+- [x] Implement dependency injection for list_manager
+- [x] Fix interactive keyboard edge cases and errors
+
 ## Data Persistence
-- [ ] Choose and implement storage solution (SQLite)
+- [x] Choose and implement storage solution (SQLite)
 - [ ] Design SQLite schema for lists, items, and groups
 - [ ] Implement SQLite data persistence layer
 - [ ] Add data migration and backup functionality
 - [ ] Handle bot restart data recovery
 
-## Testing and Deployment
-- [ ] Set up testing framework
-- [ ] Write tests for core functionality
-- [ ] Configure deployment setup
+## Deployment
+- [ ] Set up logging for production
+
+## Future Enhancements
+- [ ] Implement item suggestions based on history
