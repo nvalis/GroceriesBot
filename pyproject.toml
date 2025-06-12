@@ -1,0 +1,9 @@
+[project]
+name = "telegram-groceries"
+version = "0.1.0"
+description = "A Telegram bot for managing grocery shopping lists in group chats"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "python-telegram-bot>=21.6",
+]
