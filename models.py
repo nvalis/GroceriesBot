@@ -74,8 +74,8 @@ class ShoppingList:
         for i, item in enumerate(self.items):
             if not item.is_purchased:
                 keyboard.append([
-                    InlineKeyboardButton(f"✅ Done: {item.name[:20]}", callback_data=f"done_{i}"),
-                    InlineKeyboardButton(f"🗑️ Remove: {item.name[:15]}", callback_data=f"remove_{i}")
+                    InlineKeyboardButton(f"✅ Done: {item.quantity} {item.name[:15]}", callback_data=f"done_{i}"),
+                    InlineKeyboardButton(f"🗑️ Remove: {item.quantity} {item.name[:12]}", callback_data=f"remove_{i}")
                 ])
         
         # Add list management buttons

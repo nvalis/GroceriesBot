@@ -116,7 +116,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         elif data == "delete_list_prompt":
             # Prompt for list deletion
             lists = list_manager.get_all_lists(chat_id)
-            active_list_id = list_manager.active_lists.get(chat_id, "groceries")
+            active_list_id = list_manager.db.get_active_list_id(chat_id)
             
             keyboard = []
             for shopping_list in sorted(lists, key=lambda x: x.list_id):

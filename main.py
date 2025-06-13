@@ -8,13 +8,14 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
-from list_manager import ShoppingListManager
+from persistent_list_manager import PersistentShoppingListManager
 from handlers import (
     start, help_command, new_chat_members,
     add_item, remove_item, mark_done,
     show_current_list, show_all_lists, create_list, switch_list,
     delete_list, clear_done_items, wipe_list,
-    handle_callback_query
+    handle_callback_query,
+    backup_data, stats_command
 )
 
 # Load environment variables from .env file
@@ -30,8 +31,8 @@ logger = logging.getLogger(__name__)
 # Reduce httpx logging spam
 logging.getLogger('httpx').setLevel(logging.WARNING)
 
-# Global shopping list manager
-list_manager = ShoppingListManager()
+# Global shopping list manager with SQLite persistence
+list_manager = PersistentShoppingListManager()
 
 
 def create_handler_with_list_manager(handler_func):
@@ -71,6 +72,11 @@ def main() -> None:
     
     # Callback query handler for interactive buttons
     application.add_handler(CallbackQueryHandler(create_handler_with_list_manager(handle_callback_query)))
+    
+    # Admin handlers
+    application.add_handler(CommandHandler("backup", create_handler_with_list_manager(backup_data)))
+    application.add_handler(CommandHandler("stats", create_handler_with_list_manager(stats_command)))
+    
     
     # Group management handler
     application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_chat_members))
