@@ -13,18 +13,31 @@ from handlers import (
     start, help_command, new_chat_members,
     add_item, remove_item, mark_done,
     show_current_list, show_all_lists, create_list, switch_list,
-    delete_list, clear_done_items, wipe_list,
-    handle_callback_query,
+    delete_list, wipe_list,
+    handle_callback_query, handle_reply_keyboard_text,
     backup_data, stats_command
 )
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Enable logging
+# Enable logging to both console and file
+import datetime
+log_filename = f"bot_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+
+# Create handlers
+file_handler = logging.FileHandler(log_filename)
+console_handler = logging.StreamHandler()
+
+# Create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# Configure root logger
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.INFO,
+    handlers=[file_handler, console_handler]
 )
 logger = logging.getLogger(__name__)
 
@@ -67,11 +80,13 @@ def main() -> None:
     application.add_handler(CommandHandler("new", create_handler_with_list_manager(create_list)))
     application.add_handler(CommandHandler("go", create_handler_with_list_manager(switch_list)))
     application.add_handler(CommandHandler("delete", create_handler_with_list_manager(delete_list)))
-    application.add_handler(CommandHandler("clear", create_handler_with_list_manager(clear_done_items)))
     application.add_handler(CommandHandler("wipe", create_handler_with_list_manager(wipe_list)))
     
     # Callback query handler for interactive buttons
     application.add_handler(CallbackQueryHandler(create_handler_with_list_manager(handle_callback_query)))
+    
+    # Text message handler for reply keyboard and general text input
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, create_handler_with_list_manager(handle_reply_keyboard_text)))
     
     # Admin handlers
     application.add_handler(CommandHandler("backup", create_handler_with_list_manager(backup_data)))
@@ -82,7 +97,7 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_chat_members))
 
     # Run the bot until the user presses Ctrl-C
-    logger.info("Starting bot...")
+    logger.info(f"Starting bot... Log file: {log_filename}")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 

@@ -21,6 +21,12 @@ async def show_current_list(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     keyboard = shopping_list.get_interactive_keyboard()
     
     await update.message.reply_text(list_text, parse_mode='Markdown', reply_markup=keyboard)
+    
+    # Send reply keyboard for quick actions
+    await update.message.reply_text(
+        "Use the buttons below for quick actions:",
+        reply_markup=shopping_list.get_reply_keyboard()
+    )
 
 
 async def show_all_lists(update: Update, context: ContextTypes.DEFAULT_TYPE, list_manager) -> None:
@@ -30,10 +36,25 @@ async def show_all_lists(update: Update, context: ContextTypes.DEFAULT_TYPE, lis
     chat_id = update.effective_chat.id
     
     logger.info(f"Lists command from user {user.first_name} ({user.id}) in chat {chat.id}")
-    lists_text = list_manager.get_lists_summary(chat_id)
-    keyboard = list_manager.get_lists_keyboard(chat_id)
+    try:
+        lists_text = list_manager.get_lists_summary(chat_id)
+        keyboard = list_manager.get_lists_keyboard(chat_id)
+        await update.message.reply_text(lists_text, parse_mode='Markdown', reply_markup=keyboard)
+    except Exception as e:
+        logger.error(f"Error showing all lists: {e}")
+        active_list = list_manager.get_active_list(chat_id)
+        await update.message.reply_text(
+            "Error displaying lists. Use the 📊 button for list overview.",
+            reply_markup=active_list.get_reply_keyboard()
+        )
+        return
     
-    await update.message.reply_text(lists_text, parse_mode='Markdown', reply_markup=keyboard)
+    # Send reply keyboard for quick actions
+    active_list = list_manager.get_active_list(chat_id)
+    await update.message.reply_text(
+        "Use the buttons below for quick actions:",
+        reply_markup=active_list.get_reply_keyboard()
+    )
 
 
 async def create_list(update: Update, context: ContextTypes.DEFAULT_TYPE, list_manager) -> None:
@@ -53,7 +74,12 @@ async def create_list(update: Update, context: ContextTypes.DEFAULT_TYPE, list_m
     list_id = list_manager.create_list(chat_id, list_name)
     list_manager.set_active_list(chat_id, list_id)  # Auto-switch to new list
     
-    await update.message.reply_text(f"✅ Created and switched to *{list_name}*!\nStart adding items with /add", parse_mode='Markdown')
+    new_list = list_manager.get_active_list(chat_id)
+    await update.message.reply_text(
+        f"✅ Created and switched to *{list_name}*!\nStart adding items with /add", 
+        parse_mode='Markdown',
+        reply_markup=new_list.get_reply_keyboard()
+    )
 
 
 async def switch_list(update: Update, context: ContextTypes.DEFAULT_TYPE, list_manager) -> None:
@@ -65,8 +91,20 @@ async def switch_list(update: Update, context: ContextTypes.DEFAULT_TYPE, list_m
         logger.info(f"Go command without args from user {user.first_name} ({user.id}) in chat {chat.id}")
         
         # Show available lists for easy switching
-        lists_text = list_manager.get_lists_summary(chat.id)
-        await update.message.reply_text(f"{lists_text}\n\nUsage: /go <list_id>\nExample: /go costco", parse_mode='Markdown')
+        try:
+            lists_text = list_manager.get_lists_summary(chat.id)
+            message_text = f"{lists_text}\n\nUsage: /go <list_id>\nExample: /go costco"
+        except Exception as e:
+            logger.error(f"Error generating lists summary: {e}")
+            message_text = "Error displaying lists. Use the 🔄 button to switch lists instead."
+        
+        # Get current list for reply keyboard
+        active_list = list_manager.get_active_list(chat.id)
+        await update.message.reply_text(
+            message_text, 
+            parse_mode='Markdown',
+            reply_markup=active_list.get_reply_keyboard()
+        )
         return
     
     chat_id = update.effective_chat.id
@@ -78,9 +116,19 @@ async def switch_list(update: Update, context: ContextTypes.DEFAULT_TYPE, list_m
     if chat_id in list_manager.lists and list_id in list_manager.lists[chat_id]:
         list_manager.set_active_list(chat_id, list_id)
         list_name = list_manager.get_active_list(chat_id).name
-        await update.message.reply_text(f"🛒 Now shopping at *{list_name}*!", parse_mode='Markdown')
+        switched_list = list_manager.get_active_list(chat_id)
+        await update.message.reply_text(
+            f"🛒 Now shopping at *{list_name}*!", 
+            parse_mode='Markdown',
+            reply_markup=switched_list.get_reply_keyboard()
+        )
     else:
-        await update.message.reply_text(f"❌ List `{list_id}` not found.\nUse /lists to see your lists or /new to create one.", parse_mode='Markdown')
+        active_list = list_manager.get_active_list(chat_id)
+        await update.message.reply_text(
+            f"❌ List `{list_id}` not found.\nUse /lists to see your lists or /new to create one.", 
+            parse_mode='Markdown',
+            reply_markup=active_list.get_reply_keyboard()
+        )
 
 
 async def delete_list(update: Update, context: ContextTypes.DEFAULT_TYPE, list_manager) -> None:
@@ -100,30 +148,28 @@ async def delete_list(update: Update, context: ContextTypes.DEFAULT_TYPE, list_m
     
     if list_manager.delete_list(chat_id, list_id):
         current_list = list_manager.get_active_list(chat_id)
-        await update.message.reply_text(f"✅ Deleted list `{list_id}`!\nNow using *{current_list.name}*", parse_mode='Markdown')
+        await update.message.reply_text(
+            f"✅ Deleted list `{list_id}`!\nNow using *{current_list.name}*", 
+            parse_mode='Markdown',
+            reply_markup=current_list.get_reply_keyboard()
+        )
     else:
         lists = list_manager.get_all_lists(chat_id)
         if len(lists) <= 1:
-            await update.message.reply_text("❌ Cannot delete your only list! Create another list first.")
+            active_list = list_manager.get_active_list(chat_id)
+            await update.message.reply_text(
+                "❌ Cannot delete your only list! Create another list first.",
+                reply_markup=active_list.get_reply_keyboard()
+            )
         else:
-            await update.message.reply_text(f"❌ List `{list_id}` not found. Use /lists to see your lists.", parse_mode='Markdown')
+            active_list = list_manager.get_active_list(chat_id)
+            await update.message.reply_text(
+                f"❌ List `{list_id}` not found. Use /lists to see your lists.", 
+                parse_mode='Markdown',
+                reply_markup=active_list.get_reply_keyboard()
+            )
 
 
-async def clear_done_items(update: Update, context: ContextTypes.DEFAULT_TYPE, list_manager) -> None:
-    """Clear purchased items from the shopping list."""
-    user = update.effective_user
-    chat = update.effective_chat
-    chat_id = update.effective_chat.id
-    
-    logger.info(f"Clear purchased items command from user {user.first_name} ({user.id}) in chat {chat.id}")
-    count = list_manager.clear_purchased(chat_id)
-    shopping_list = list_manager.get_active_list(chat_id)
-    
-    if count > 0:
-        logger.info(f"Cleared {count} purchased items from chat {chat.id}")
-        await update.message.reply_text(f"🧹 Cleared {count} bought items from *{shopping_list.name}*!", parse_mode='Markdown')
-    else:
-        await update.message.reply_text(f"No bought items to clear in *{shopping_list.name}*.", parse_mode='Markdown')
 
 
 async def wipe_list(update: Update, context: ContextTypes.DEFAULT_TYPE, list_manager) -> None:
@@ -139,6 +185,14 @@ async def wipe_list(update: Update, context: ContextTypes.DEFAULT_TYPE, list_man
     
     if count > 0:
         logger.info(f"Wiped entire shopping list ({count} items) from chat {chat.id}")
-        await update.message.reply_text(f"🧹 Wiped *{shopping_list.name}* clean! ({count} items removed)", parse_mode='Markdown')
+        await update.message.reply_text(
+            f"🧹 Wiped *{shopping_list.name}* clean! ({count} items removed)", 
+            parse_mode='Markdown',
+            reply_markup=shopping_list.get_reply_keyboard()
+        )
     else:
-        await update.message.reply_text(f"*{shopping_list.name}* is already empty.", parse_mode='Markdown')
+        await update.message.reply_text(
+            f"*{shopping_list.name}* is already empty.", 
+            parse_mode='Markdown',
+            reply_markup=shopping_list.get_reply_keyboard()
+        )

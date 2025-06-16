@@ -49,8 +49,7 @@ class PersistentShoppingListManager:
             item = ShoppingItem(
                 name=item_data['name'],
                 quantity=item_data['quantity'],
-                added_by=item_data['added_by'],
-                is_purchased=bool(item_data['is_purchased'])
+                added_by=item_data['added_by']
             )
             shopping_list.items.append(item)
         
@@ -176,39 +175,22 @@ class PersistentShoppingListManager:
         for shopping_list in sorted(lists, key=lambda x: x.list_id):
             active_marker = "🔹" if shopping_list.list_id == active_list_id else "▫️"
             item_count = len(shopping_list.items)
-            purchased_count = sum(1 for item in shopping_list.items if item.is_purchased)
-            pending_count = item_count - purchased_count
             
-            text += f"{active_marker} *{shopping_list.name}* (`{shopping_list.list_id}`)\n"
-            text += f"   📝 {pending_count} pending, ✅ {purchased_count} done\n\n"
+            # Escape special characters in names and IDs for Markdown
+            safe_name = shopping_list.name.replace('*', '\\*').replace('_', '\\_').replace('`', '\\`')
+            safe_id = shopping_list.list_id.replace('*', '\\*').replace('_', '\\_').replace('`', '\\`')
+            
+            text += f"{active_marker} *{safe_name}* (`{safe_id}`)\n"
+            text += f"   📝 {item_count} items\n\n"
         
-        text += f"💡 Active list: *{self.get_active_list(chat_id).name}*"
+        active_list = self.get_active_list(chat_id)
+        safe_active_name = active_list.name.replace('*', '\\*').replace('_', '\\_').replace('`', '\\`')
+        text += f"💡 Active list: *{safe_active_name}*"
         return text
     
-    def get_lists_keyboard(self, chat_id: int) -> InlineKeyboardMarkup:
-        """Get inline keyboard for list switching."""
-        lists = self.get_all_lists(chat_id)
-        active_list_id = self.db.get_active_list_id(chat_id)
-        
-        keyboard = []
-        
-        # Add switch buttons for each list
-        for shopping_list in sorted(lists, key=lambda x: x.list_id):
-            if shopping_list.list_id != active_list_id:  # Don't show current active list
-                button_text = f"🛒 {shopping_list.name}"
-                keyboard.append([InlineKeyboardButton(button_text, callback_data=f"switch_{shopping_list.list_id}")])
-        
-        # Add management buttons
-        keyboard.append([
-            InlineKeyboardButton("➕ New List", callback_data="new_list_prompt"),
-            InlineKeyboardButton("🗑️ Delete List", callback_data="delete_list_prompt")
-        ])
-        
-        keyboard.append([
-            InlineKeyboardButton("🔙 Back to Current List", callback_data="back_to_list")
-        ])
-        
-        return InlineKeyboardMarkup(keyboard)
+    def get_lists_keyboard(self, chat_id: int):
+        """Get inline keyboard for list switching - disabled."""
+        return None
     
     def add_item(self, chat_id: int, name: str, quantity: str = "1", added_by: str = "") -> None:
         """Add an item to a chat's active shopping list."""
@@ -234,31 +216,6 @@ class PersistentShoppingListManager:
         
         return success
     
-    def mark_purchased(self, chat_id: int, index: int) -> bool:
-        """Mark an item as purchased in a chat's active shopping list."""
-        active_list_id = self.db.get_active_list_id(chat_id)
-        
-        # Update in database
-        success = self.db.update_item_purchased(chat_id, active_list_id, index, True)
-        
-        if success:
-            # Invalidate cache
-            self._invalidate_cache(chat_id, active_list_id)
-        
-        return success
-    
-    def clear_purchased(self, chat_id: int) -> int:
-        """Clear all purchased items from a chat's active shopping list."""
-        active_list_id = self.db.get_active_list_id(chat_id)
-        
-        # Clear from database
-        count = self.db.clear_purchased_items(chat_id, active_list_id)
-        
-        if count > 0:
-            # Invalidate cache
-            self._invalidate_cache(chat_id, active_list_id)
-        
-        return count
     
     def get_list_display(self, chat_id: int) -> str:
         """Get formatted display text for a chat's active shopping list."""

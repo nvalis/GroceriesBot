@@ -80,9 +80,9 @@ async def mark_done(update: Update, context: ContextTypes.DEFAULT_TYPE, list_man
         index = int(context.args[0]) - 1  # Convert to 0-based index
         chat_id = update.effective_chat.id
         
-        logger.info(f"Marking item #{context.args[0]} as done by {user.first_name} in chat {chat.id}")
-        if list_manager.mark_purchased(chat_id, index):
-            await update.message.reply_text("✅ Item marked as purchased!")
+        logger.info(f"Removing item #{context.args[0]} as done by {user.first_name} in chat {chat.id}")
+        if list_manager.remove_item(chat_id, index):
+            await update.message.reply_text("✅ Item removed!")
         else:
             logger.warning(f"Invalid item number {context.args[0]} in chat {chat.id}")
             await update.message.reply_text("❌ Invalid item number.")

@@ -92,39 +92,16 @@ class ShoppingListManager:
         for shopping_list in sorted(lists, key=lambda x: x.list_id):
             active_marker = "🔹" if shopping_list.list_id == active_list_id else "▫️"
             item_count = len(shopping_list.items)
-            purchased_count = sum(1 for item in shopping_list.items if item.is_purchased)
-            pending_count = item_count - purchased_count
             
             text += f"{active_marker} *{shopping_list.name}* (`{shopping_list.list_id}`)\n"
-            text += f"   📝 {pending_count} pending, ✅ {purchased_count} done\n\n"
+            text += f"   📝 {item_count} items\n\n"
         
         text += f"💡 Active list: *{self.get_active_list(chat_id).name}*"
         return text
     
-    def get_lists_keyboard(self, chat_id: int) -> InlineKeyboardMarkup:
-        """Get inline keyboard for list switching."""
-        lists = self.get_all_lists(chat_id)
-        active_list_id = self.active_lists.get(chat_id, "groceries")
-        
-        keyboard = []
-        
-        # Add switch buttons for each list
-        for shopping_list in sorted(lists, key=lambda x: x.list_id):
-            if shopping_list.list_id != active_list_id:  # Don't show current active list
-                button_text = f"🛒 {shopping_list.name}"
-                keyboard.append([InlineKeyboardButton(button_text, callback_data=f"switch_{shopping_list.list_id}")])
-        
-        # Add management buttons
-        keyboard.append([
-            InlineKeyboardButton("➕ New List", callback_data="new_list_prompt"),
-            InlineKeyboardButton("🗑️ Delete List", callback_data="delete_list_prompt")
-        ])
-        
-        keyboard.append([
-            InlineKeyboardButton("🔙 Back to Current List", callback_data="back_to_list")
-        ])
-        
-        return InlineKeyboardMarkup(keyboard)
+    def get_lists_keyboard(self, chat_id: int):
+        """Get inline keyboard for list switching - disabled."""
+        return None
     
     def add_item(self, chat_id: int, name: str, quantity: str = "1", added_by: str = "") -> None:
         """Add an item to a chat's active shopping list."""
@@ -136,15 +113,6 @@ class ShoppingListManager:
         shopping_list = self.get_active_list(chat_id)
         return shopping_list.remove_item(index)
     
-    def mark_purchased(self, chat_id: int, index: int) -> bool:
-        """Mark an item as purchased in a chat's active shopping list."""
-        shopping_list = self.get_active_list(chat_id)
-        return shopping_list.mark_purchased(index)
-    
-    def clear_purchased(self, chat_id: int) -> int:
-        """Clear all purchased items from a chat's active shopping list."""
-        shopping_list = self.get_active_list(chat_id)
-        return shopping_list.clear_purchased()
     
     def get_list_display(self, chat_id: int) -> str:
         """Get formatted display text for a chat's active shopping list."""

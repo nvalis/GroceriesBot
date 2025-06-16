@@ -25,7 +25,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         if data.startswith("done_"):
             # Mark item as done
             item_index = int(data.split("_")[1])
-            if list_manager.mark_purchased(chat_id, item_index):
+            if list_manager.remove_item(chat_id, item_index):
                 shopping_list = list_manager.get_active_list(chat_id)
                 new_text = shopping_list.get_display_text()
                 new_keyboard = shopping_list.get_interactive_keyboard()
@@ -44,18 +44,6 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             else:
                 await query.edit_message_text("❌ Item not found. List may have changed.")
         
-        elif data == "clear_bought":
-            # Clear purchased items
-            count = list_manager.clear_purchased(chat_id)
-            shopping_list = list_manager.get_active_list(chat_id)
-            
-            if count > 0:
-                new_text = f"🧹 Cleared {count} bought items!\n\n" + shopping_list.get_display_text()
-                new_keyboard = shopping_list.get_interactive_keyboard()
-                await query.edit_message_text(new_text, parse_mode='Markdown', reply_markup=new_keyboard)
-            else:
-                await query.edit_message_text(f"No bought items to clear.\n\n{shopping_list.get_display_text()}", 
-                                             parse_mode='Markdown', reply_markup=shopping_list.get_interactive_keyboard())
         
         elif data == "wipe_all":
             # Wipe entire list
@@ -88,12 +76,22 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         
         elif data.startswith("switch_"):
             # Switch to different list
-            list_id = data.split("_", 1)[1]
+            if data.startswith("switch_list:"):
+                list_id = data.split(":", 1)[1]
+            else:
+                list_id = data.split("_", 1)[1]
+            
             if list_manager.set_active_list(chat_id, list_id):
                 shopping_list = list_manager.get_active_list(chat_id)
                 new_text = f"🛒 Switched to *{shopping_list.name}*!\n\n" + shopping_list.get_display_text()
                 new_keyboard = shopping_list.get_interactive_keyboard()
                 await query.edit_message_text(new_text, parse_mode='Markdown', reply_markup=new_keyboard)
+                
+                # Send a separate message with reply keyboard
+                await query.message.reply_text(
+                    "🔽",
+                    reply_markup=shopping_list.get_reply_keyboard()
+                )
             else:
                 await query.edit_message_text("❌ List not found.")
         
@@ -135,7 +133,11 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         
         elif data.startswith("confirm_delete_"):
             # Confirm list deletion
-            list_id = data.split("_", 2)[2]
+            if data.startswith("confirm_delete_list:"):
+                list_id = data.split(":", 1)[1]
+            else:
+                list_id = data.split("_", 2)[2]
+                
             if list_manager.delete_list(chat_id, list_id):
                 current_list = list_manager.get_active_list(chat_id)
                 await query.edit_message_text(
@@ -145,6 +147,12 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                         InlineKeyboardButton("📋 Show Lists", callback_data="show_lists"),
                         InlineKeyboardButton("🔙 Back to Current List", callback_data="back_to_list")
                     ]])
+                )
+                
+                # Send a separate message with reply keyboard
+                await query.message.reply_text(
+                    "🔽",
+                    reply_markup=current_list.get_reply_keyboard()
                 )
             else:
                 await query.edit_message_text("❌ Could not delete list.")

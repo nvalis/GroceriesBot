@@ -14,7 +14,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     chat = update.effective_chat
     logger.info(f"Start command from user {user.first_name} ({user.id}) in chat {chat.id}")
-    await update.message.reply_text('Hi! I\'m your grocery list bot. Add me to a group to get started!')
+    
+    # Import here to avoid circular imports
+    from models import ShoppingList
+    
+    # Create a default list to get the reply keyboard
+    default_list = ShoppingList(chat_id=chat.id)
+    
+    await update.message.reply_text(
+        'Hi! I\'m your grocery list bot. Add me to a group to get started!\n\n'
+        'Use the buttons below for quick actions or type /help for more information.',
+        reply_markup=default_list.get_reply_keyboard()
+    )
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE, list_manager) -> None:
@@ -34,9 +45,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE, list_
 *Basic Commands:*
 /add - Add item to current list
 /list - Show current list
-/done - Mark item as bought
+/done - Remove item from list
 /remove - Remove item
-/clear - Remove bought items
 
 *List Management:*
 /lists - Show all your lists
@@ -45,7 +55,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE, list_
 /delete - Delete a list
 /wipe - Clear entire current list
     """
-    await update.message.reply_text(help_text, parse_mode='Markdown')
+    await update.message.reply_text(
+        help_text, 
+        parse_mode='Markdown',
+        reply_markup=active_list.get_reply_keyboard()
+    )
 
 
 async def new_chat_members(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

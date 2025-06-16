@@ -64,7 +64,6 @@ class DatabaseManager:
                 name TEXT NOT NULL,
                 quantity TEXT DEFAULT '1',
                 added_by TEXT DEFAULT '',
-                is_purchased BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (list_pk) REFERENCES shopping_lists (id) ON DELETE CASCADE
@@ -228,7 +227,7 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute("""
-                    SELECT si.id, si.name, si.quantity, si.added_by, si.is_purchased, si.created_at
+                    SELECT si.id, si.name, si.quantity, si.added_by, si.created_at
                     FROM shopping_items si
                     JOIN shopping_lists sl ON si.list_pk = sl.id
                     WHERE sl.chat_id = ? AND sl.list_id = ?
@@ -240,26 +239,6 @@ class DatabaseManager:
             logger.error(f"Failed to get items from list {list_id} for chat {chat_id}: {e}")
             return []
     
-    def update_item_purchased(self, chat_id: int, list_id: str, item_index: int, is_purchased: bool) -> bool:
-        """Update the purchased status of an item by index."""
-        try:
-            items = self.get_items(chat_id, list_id)
-            if 0 <= item_index < len(items):
-                item_id = items[item_index]['id']
-                
-                with sqlite3.connect(self.db_path) as conn:
-                    conn.execute("""
-                        UPDATE shopping_items
-                        SET is_purchased = ?, updated_at = CURRENT_TIMESTAMP
-                        WHERE id = ?
-                    """, (is_purchased, item_id))
-                    
-                    conn.commit()
-                    return True
-            return False
-        except Exception as e:
-            logger.error(f"Failed to update item {item_index} in list {list_id} for chat {chat_id}: {e}")
-            return False
     
     def remove_item(self, chat_id: int, list_id: str, item_index: int) -> bool:
         """Remove an item by index."""
@@ -277,28 +256,6 @@ class DatabaseManager:
             logger.error(f"Failed to remove item {item_index} from list {list_id} for chat {chat_id}: {e}")
             return False
     
-    def clear_purchased_items(self, chat_id: int, list_id: str) -> int:
-        """Remove all purchased items from a list. Returns count of removed items."""
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute("""
-                    DELETE FROM shopping_items
-                    WHERE id IN (
-                        SELECT si.id
-                        FROM shopping_items si
-                        JOIN shopping_lists sl ON si.list_pk = sl.id
-                        WHERE sl.chat_id = ? AND sl.list_id = ? AND si.is_purchased = TRUE
-                    )
-                """, (chat_id, list_id))
-                
-                count = cursor.rowcount
-                conn.commit()
-                
-                logger.info(f"Cleared {count} purchased items from list {list_id} for chat {chat_id}")
-                return count
-        except Exception as e:
-            logger.error(f"Failed to clear purchased items from list {list_id} for chat {chat_id}: {e}")
-            return 0
     
     def clear_all_items(self, chat_id: int, list_id: str) -> int:
         """Remove all items from a list. Returns count of removed items."""

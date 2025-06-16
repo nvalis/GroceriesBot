@@ -5,7 +5,7 @@ Data models for the Telegram Groceries Bot.
 from datetime import datetime
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 
 
 @dataclass
@@ -15,11 +15,9 @@ class ShoppingItem:
     quantity: str = "1"
     added_by: str = ""
     added_at: datetime = field(default_factory=datetime.now)
-    is_purchased: bool = False
     
     def __str__(self) -> str:
-        status = "✅" if self.is_purchased else "📝"
-        return f"{status} {self.quantity} {self.name}"
+        return f"📝 {self.quantity} {self.name}"
 
 
 @dataclass
@@ -43,18 +41,6 @@ class ShoppingList:
             return True
         return False
     
-    def mark_purchased(self, index: int) -> bool:
-        """Mark an item as purchased. Returns True if successful."""
-        if 0 <= index < len(self.items):
-            self.items[index].is_purchased = True
-            return True
-        return False
-    
-    def clear_purchased(self) -> int:
-        """Remove all purchased items. Returns count of removed items."""
-        initial_count = len(self.items)
-        self.items = [item for item in self.items if not item.is_purchased]
-        return initial_count - len(self.items)
     
     def get_display_text(self) -> str:
         """Get formatted text for displaying the list."""
@@ -66,34 +52,58 @@ class ShoppingList:
             text += f"{i}. {item}\n"
         return text
     
-    def get_interactive_keyboard(self) -> InlineKeyboardMarkup:
-        """Get inline keyboard for list actions."""
-        keyboard = []
+    def get_interactive_keyboard(self):
+        """Get inline keyboard for list actions - disabled."""
+        return None
+    
+    def get_reply_keyboard(self) -> ReplyKeyboardMarkup:
+        """Get main menu reply keyboard."""
+        # Truncate list name if too long for button
+        display_name = self.name
+        if len(display_name) > 15:
+            display_name = display_name[:12] + "..."
         
-        # Add buttons for each item
-        for i, item in enumerate(self.items):
-            if not item.is_purchased:
-                keyboard.append([
-                    InlineKeyboardButton(f"✅ Done: {item.quantity} {item.name[:15]}", callback_data=f"done_{i}"),
-                    InlineKeyboardButton(f"🗑️ Remove: {item.quantity} {item.name[:12]}", callback_data=f"remove_{i}")
-                ])
+        keyboard = [
+            [f"✏️ Edit {display_name}", "🛒 Shopping Mode"],
+            ["📋 List Management", "ℹ️ Help"]
+        ]
         
-        # Add list management buttons
-        purchased_items = sum(1 for item in self.items if item.is_purchased)
-        if purchased_items > 0:
-            keyboard.append([
-                InlineKeyboardButton("🧹 Clear Bought Items", callback_data="clear_bought"),
-                InlineKeyboardButton("🗑️ Wipe All", callback_data="wipe_all")
-            ])
-        elif len(self.items) > 0:  # Only wipe if there are items
-            keyboard.append([
-                InlineKeyboardButton("🗑️ Wipe All", callback_data="wipe_all")
-            ])
+        return ReplyKeyboardMarkup(
+            keyboard,
+            resize_keyboard=True,
+            one_time_keyboard=False,
+            is_persistent=True,
+            input_field_placeholder="Choose a mode or type item name..."
+        )
+    
+    def get_list_management_keyboard(self) -> ReplyKeyboardMarkup:
+        """Get list management mode keyboard."""
+        keyboard = [
+            ["📋 Show Current List", "📝 Create New List"],
+            ["🔄 Switch Lists", "🗑️ Delete List"],
+            ["← Back to Main Menu"]
+        ]
         
-        # Add list switching buttons
-        keyboard.append([
-            InlineKeyboardButton("📋 All Lists", callback_data="show_lists"),
-            InlineKeyboardButton("🔄 Refresh", callback_data="refresh")
-        ])
+        return ReplyKeyboardMarkup(
+            keyboard,
+            resize_keyboard=True,
+            one_time_keyboard=False,
+            is_persistent=True,
+            input_field_placeholder="Manage your lists..."
+        )
+    
+    def get_item_management_keyboard(self) -> ReplyKeyboardMarkup:
+        """Get item management mode keyboard."""
+        keyboard = [
+            ["➕ Add Item", "🔍 Show List"],
+            ["🗑️ Remove Item", "🗑️ Wipe All"],
+            ["← Back to Main Menu"]
+        ]
         
-        return InlineKeyboardMarkup(keyboard)
+        return ReplyKeyboardMarkup(
+            keyboard,
+            resize_keyboard=True,
+            one_time_keyboard=False,
+            is_persistent=True,
+            input_field_placeholder="Manage your items..."
+        )

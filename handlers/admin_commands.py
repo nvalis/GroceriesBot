@@ -74,9 +74,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE, list
             cursor = conn.execute("SELECT COUNT(*) FROM shopping_items")
             total_items = cursor.fetchone()[0]
             
-            # Count purchased items
-            cursor = conn.execute("SELECT COUNT(*) FROM shopping_items WHERE is_purchased = TRUE")
-            purchased_items = cursor.fetchone()[0]
+            purchased_items = 0  # No longer tracking purchased items
         
         stats_text = f"""
 📊 *Bot Statistics*
