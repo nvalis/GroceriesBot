@@ -111,9 +111,11 @@ async def handle_reply_keyboard_text(update: Update, context: ContextTypes.DEFAU
         await delete_list_from_text(update, context, list_manager, text)
     elif user_context.awaiting_item_done:
         user_context.reset()
+        user_context.in_item_mode = True  # Return to item mode after marking done
         await handle_mark_done_action(update, context, list_manager, text)
     elif user_context.awaiting_item_removal:
         user_context.reset()
+        user_context.in_item_mode = True  # Return to item mode after removal
         await handle_remove_item_action(update, context, list_manager, text)
     
     # Handle list management mode buttons
