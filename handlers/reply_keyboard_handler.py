@@ -127,9 +127,11 @@ async def handle_reply_keyboard_text(update: Update, context: ContextTypes.DEFAU
         await handle_shopping_mode_action(update, context, list_manager, text)
     
     
-    # Handle regular text input - assume it's adding an item
+    # Handle regular text input - only add as item if no other context matches
     else:
-        await add_item_from_text(update, context, list_manager, text)
+        # Don't automatically add items unless user explicitly chose to add an item
+        logger.warning(f"Unhandled text input: {text}")
+        await update.message.reply_text("❌ Unknown command. Use the buttons or /help for available options.")
 
 
 async def show_current_list_action(update: Update, context: ContextTypes.DEFAULT_TYPE, list_manager) -> None:
